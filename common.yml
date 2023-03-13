@@ -1,0 +1,137 @@
+# Servicios comunes para la GPT API
+# common.yml V0.0.1
+
+version: '3.9'
+
+networks:
+  public:
+  dbinterface:
+  cms:
+  ingress:
+    external: true
+    name: traefik_net
+  
+volumes:
+  mongo_data:
+  cms_data:
+  filebrowser_data:
+  postgres_data:
+  redis_data:
+
+services:
+      
+  filebrowser:
+    image: ${FILEBROWSER_IMAGE-hurlenko/filebrowser}
+    #labels:
+     # com.docker.stack.service.path: ""
+      #traefik.enable: "true"
+      #traefik.http.routers.atenasf-router.rule: PathPrefix(`${STACK_NAME}`)
+      #traefik.http.middlewares.atenas-sp.stripprefix.prefixes: /${STACK_NAME}
+      #traefik.http.routers.atenas-router.middlewares: atenas-sp
+    #environment:
+      #FB_BASEURL: "/{{ index .Service.Labels `com.docker.stack.namespace`}}"
+    volumes:
+      #- rasa_data:/data/{{index .Service.Labels "com.docker.stack.namespace"}}_rasa_models
+      - rasa_shared_actions_data:/actions
+      #- rasa_dev_data:/data/{{index .Service.Labels "com.docker.stack.namespace"}}_rasa_dev_models
+      #- rasa_dev_actions_data:/data/{{index .Service.Labels "com.docker.stack.namespace"}}_rasa_dev_actions      
+      - filebrowser_data:/config
+    ports:
+      - "1212:8080"
+    networks:
+      - public
+
+  cms:
+    image: ${CMS_IMAGE-directus/directus}
+    labels:
+      com.docker.stack.service.name: cms
+    volumes:
+      - cms_data:/directus
+    ports:
+      - "${STACK_CODE-300}55:8055"
+    environment:
+      - KEY=${CMS_KEY}
+      - SECRET=${CMS_SECRET}
+      - ADMIN_EMAIL=${CMS_ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${CMS_ADMIN_PASSWORD}
+      - DB_CLIENT=${CMS_DB_CLIENT-mssql}
+      - DB_HOST=${CMS_DB_HOST-192.168.43.161}
+      - DB_PORT=${CMS_DB_PORT-1433}
+      - DB_DATABASE=${CMS_DB_DATABASE-CMS}
+      - DB_USER=${CMS_DB_USER-mituser}
+      - DB_PASSWORD=${CMS_DB_PASSWORD-mitcall}
+    networks:
+      - cms
+         
+  dbinterface:
+    image: ${DBINTERFACE_IMAGE-alexanderditzend/dbinterface:2.0.0}
+    environment:
+      - PORT=${DBINTERFACE_PORT-4000}
+      - NODE_ENV=${DBINTERFACE_NODE_ENV-development}
+      - MSSQL_DRIVER=${DBINTERFACE_MSSQL_DRIVER-mssql}
+      - DB_HOST=${DBINTERFACE_DB_HOST-192.168.43.161}
+      - DB_PORT=${DBINTERFACE_DB_PORT-1433}
+      - DB_USER=${DBINTERFACE_DB_USER-mituser}
+      - DB_PASSWORD=${DBINTERFACE_DB_PASSWORD-mitcall}
+      - DB_NAME=${DBINTERFACE_DB_NAME-MitACD}
+    ports:
+      - ${STACK_CODE-300}40:${DBINTERFACE_PORT-4000}
+    networks:
+      - dbinterface        
+  
+  duckling:
+    image: ${DUCKLING_IMAGE-botfront/duckling}
+    networks:
+      - public
+
+  main_gateway:
+    image: ${MAIN_GATEWAY_IMAGE-alexanderditzend/main-gateway:noresponse}
+    ports:
+    # WebSocket para concordia
+      - ${STACK_CODE-300}46:8991
+    # REST API para voicebot
+      - ${STACK_CODE-300}56:3000
+    environment:
+      - BOT_API_URL=${MAIN_GATEWAY_BOT_API_URL-http://bot_api:3000}
+      - WAKE_UP_INTENT=${MAIN_GATEWAY_WAKE_UP_INTENT-/start}
+      - NUMBER_CONDENSING_ENABLED=${MAIN_GATEWAY_NUMBER_CONDENSING_ENABLED-true}
+      - NODE_ENV=${MAIN_GATEWAY_NODE_ENV-production}
+      - GLOBAL_FILTERS=${MAIN_GATEWAY_GLOBAL_FILTERS-centavo>>> centavo}
+    networks:
+      - public
+      
+  mongo:
+    image: ${MONGO_IMAGE-mongo}
+    networks:
+      - public
+    ports:
+      - ${STACK_CODE-300}17:27017
+    volumes:
+      - mongo_data:/data/db
+
+  postgres:
+    image: ${POSTGRES_IMAGE-postgres:12}
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data      - 
+
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE-rabbitmq:3-management}
+    ports:
+      - "${STACK_CODE-300}71:15672"
+      - "${STACK_CODE-300}72:5672"
+    networks:
+      - public
+      
+  redis:
+    image: ${REDIS_IMAGE-redis}
+    networks:
+      - public
+    ports:
+      - "${STACK_CODE-300}69:6379"
+    volumes:
+      - redis_data:/data
