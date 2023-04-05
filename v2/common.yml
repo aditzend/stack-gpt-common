@@ -23,7 +23,6 @@ services:
   
   cms:
     image: ${CMS_IMAGE-directus/directus}
-
     deploy:
       labels:
         - traefik.enable=true
@@ -92,30 +91,6 @@ services:
     networks:
       - public
   
-  gpt_api:
-    image: ${GPT_API_IMAGE-alexanderditzend/gpt-api:0.1.0}
-    deploy:
-      resources:
-        limits:
-          cpus: '4'
-          memory: 5000M
-        reservations:
-          cpus: '0.25'
-          memory: 500M
-      replicas: 3
-      placement:
-        constraints:
-          - node.role == worker  
-    ports:
-      - ${GPT_API_PORT-30048}:80
-    networks:
-      - public
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - SENTIMENT_URL=${SENTIMENT_URL}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-
   postgres:
     image: ${POSTGRES_IMAGE-postgres:12}
     deploy:
