@@ -1,0 +1,4 @@
+
+
+##V2
+esta version no incluye la gptapi para que se puedan lanzar diferentes versiones de esta en diferentes puertos con diferentes variables de entorno.
