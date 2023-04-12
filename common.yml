@@ -1,5 +1,5 @@
 # Servicios comunes para la GPT API
-# common.yml V0.0.1
+# common.yml V 0.0.18-weaviate
 
 version: '3.9'
 
@@ -15,6 +15,7 @@ volumes:
   postgres_data:
   redis_data:
   sentiment_data:
+  weaviate_data:
 
 services:
   
@@ -58,19 +59,6 @@ services:
       - "1212:8080"
     networks:
       - public
-  
-  gpt_api:
-    image: ${GPT_API_IMAGE-alexanderditzend/gpt-api:0.1.0}
-    ports:
-      - ${GPT_API_PORT-30048}:80
-    networks:
-      - public
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - COMPLETION_URL=${COMPLETION_URL}
-      - SENTIMENT_URL=${SENTIMENT_URL}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
 
   postgres:
     image: ${POSTGRES_IMAGE-postgres:12}
@@ -102,3 +90,15 @@ services:
       - sentiment_data:/.cache
     ports:
       - "${ANALYTICS_SENTIMENT_PORT-30048}:8000"  
+  weaviate:
+    image: semitechnologies/weaviate:1.18.3
+    ports:
+    - "${WEAVIATE_PORT-39478}:8080"
+    volumes:
+      - weaviate_data:/var/lib/weaviate  
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      CLUSTER_HOSTNAME: 'node1'    

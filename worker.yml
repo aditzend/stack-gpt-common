@@ -18,6 +18,7 @@ volumes:
   postgres_data:
   redis_data:
   sentiment_data:
+  weaviate_data:
 
 services:
   
@@ -159,3 +160,19 @@ services:
       - sentiment_data:/.cache
     ports:
       - "${ANALYTICS_SENTIMENT_PORT-30048}:8000"  
+  weaviate:
+    image: semitechnologies/weaviate:1.18.3
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker    
+    ports:
+    - "${WEAVIATE_PORT-39478}:8080"
+    volumes:
+      - weaviate_data:/var/lib/weaviate  
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      CLUSTER_HOSTNAME: 'node1'    
